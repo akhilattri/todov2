@@ -13,7 +13,7 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-mongoose.connect("mongodb://localhost:27017/todolistDB");
+mongoose.connect("mongodb+srv://admin:drizzle@cluster0.05fqvxv.mongodb.net/todolistDB");
 
 const itemsSchema = {
   name: String
@@ -37,20 +37,39 @@ app.get("/", function(req, res) {
 
 // const day = date.getDate();
 
-let passItems = [];
-
 Item.find().exec().then((presentItems)=>{
   if(presentItems.length === 0){
     Item.insertMany(defaultItems);
     res.redirect("/");
   }
   else{
-  passItems = presentItems;
-  res.render("list", {listTitle: "Today", newListItems: passItems});
+  res.render("list", {listTitle: "Today", newListItems: presentItems});
   }
 })
 
 });
+
+
+app.get("/:route", (req,res)=>{
+
+  let customTitle = _.capitalize(req.params.route);
+
+  CustomList.findOne({name: customTitle}).exec().then((result)=>{
+    if(!result){
+      const list = new CustomList({
+        name: customTitle,
+        items: defaultItems
+      });
+      list.save();
+      res.redirect("/" + customTitle);
+    }
+    else{
+      res.render("list", {listTitle: result.name, newListItems: result.items});
+    }
+  });
+
+});
+
 
 app.post("/", function(req, res){
   const newItemName = req.body.newItem;
@@ -73,6 +92,7 @@ app.post("/", function(req, res){
   }
 });
 
+
 app.post("/delete", (req, res)=>{
   const checkedID = req.body.checked;
   const listTitle = req.body.listName;
@@ -86,24 +106,6 @@ app.post("/delete", (req, res)=>{
   }
 });
 
-app.get("/:route", (req,res)=>{
-
-  let customTitle = _.capitalize(req.params.route);
-
-  CustomList.findOne({name: customTitle}).exec().then((result)=>{
-    if(!result){
-      const list = new CustomList({
-        name: customTitle,
-        items: defaultItems
-      });
-      list.save();
-      res.redirect("/" + customTitle);
-    }
-    else{
-      res.render("list", {listTitle: result.name, newListItems: result.items});
-    }
-  });
-})
 
 app.listen(3000, function() {
   console.log("Server started on port 3000");
